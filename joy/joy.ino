@@ -8,13 +8,26 @@
 #define a 2
 #define d 5
 
+#define data_size 5
+
 const int MAX_STEP = 4;
 const int MIN_STEP = 0;
 
 RF24 radio(9,10);
-byte addresses[][6] = {"1Node","2Node"};
+byte addresses[][6] = {"1Node"};
 int step;
 float initial_x, initial_y;
+
+void printAxis(char axis, byte value, byte negative) {
+  Serial.print(" | ");
+  Serial.print(axis);
+  Serial.print(": ");
+  Serial.print(value);
+  Serial.print(" | ");
+  Serial.print("isNegative: ");
+  Serial.print(negative);
+  Serial.print(" | ");
+}
 
 int increase_step(int step)
 {
@@ -38,16 +51,15 @@ int descrease_step(int step)
 
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(250000);
   printf_begin();
   
   radio.begin();
   radio.setAutoAck(1);
   radio.enableAckPayload();
   radio.setRetries(0,15);
-  radio.setPayloadSize(5);
+  radio.setPayloadSize(data_size);
   radio.openWritingPipe(addresses[0]);
-  radio.openReadingPipe(1,addresses[1]);
 
   radio.setPALevel(RF24_PA_MIN);
   radio.setDataRate(RF24_250KBPS);
@@ -80,7 +92,6 @@ void loop(void) {
        }
     }
   }
-
   
   int x = ((analogRead(x_axis) - initial_x) / initial_x) * 100;
   byte x_byte = abs(x);
@@ -90,19 +101,14 @@ void loop(void) {
   byte y_byte = abs(y);
   byte y_invert = y < 0 ? 1: 0;
 
-  Serial.print(x_byte);
-  Serial.print("-");
-  Serial.print(x_invert);
-  Serial.print(",");
-  Serial.print(y_byte);
-  Serial.print("-");
-  Serial.print(y_invert);
-  Serial.print(",");
+  printAxis('X', x_byte, x_invert);
+  printAxis('Y', y_byte, y_invert);
+  Serial.print("step: ");
   Serial.println(step);
 
-  byte response[5] = { x_byte, x_invert, y_byte, y_invert, step };
+  byte response[data_size] = { x_byte, x_invert, y_byte, y_invert, step };
     
-  radio.write(response, 5);
+  radio.write(response, data_size);
   
-  delay(100);
+  delay(50);
 }
